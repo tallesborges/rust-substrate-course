@@ -1,0 +1,13 @@
+{
+  "name": "solochain-ui",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@polkadot/api": "^15.0.1"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}

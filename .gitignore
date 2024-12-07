@@ -1,0 +1,14 @@
+target
+**/*.rs.bk
+node_modules
+
+#osx
+.DS_Store
+
+#jetbrains
+.idea
+
+#aider
+.aider*
+
+substrate_contracts_node_mac

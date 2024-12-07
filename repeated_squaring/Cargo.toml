@@ -1,0 +1,7 @@
+[package]
+name = "repeated_squaring"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+num-primes = "0.3.0"

@@ -1,0 +1,5 @@
+[workspace]
+members = ["balances", "runtime"]
+resolver = "2"
+
+# [dependencies]

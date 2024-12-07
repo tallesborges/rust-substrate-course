@@ -1,0 +1,15 @@
+[package]
+name = "cfg-demo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Essa biblioteca só sera incluída no código se a feature `feature_a` for habilitada.
+anyhow = "1.0.91"
+wasmtime = { version = "26.0.0", default-features = false, features = [
+    "cache",
+    "cranelift",
+    "wat",
+    "parallel-compilation",
+    "pooling-allocator",
+] }
