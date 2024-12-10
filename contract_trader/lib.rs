@@ -1,5 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
+mod strategies;
+
 // traits definition
 #[derive(Clone, Copy)]
 #[cfg_attr(
@@ -21,25 +23,30 @@ pub trait Trader {
     #[ink(message)]
     fn tick(&mut self, timestamp: u64, saldo: u64, tokens: u64, quotacao: u64) -> Action;
 }
+
 #[ink::contract]
 mod contract_trader {
+    use crate::strategies::*;
+
     use super::Action;
     use super::Trader;
 
     #[ink(storage)]
     pub struct ContractTrader {
-        fiat_balance: u64,
-        token_balance: u64,
-        last_quote: u64,
-        last_timestamp: u64,
+        pub strategy: StrategyType,
+        pub fiat_balance: u64,
+        pub token_balance: u64,
+        pub last_quote: u64,
+        pub last_timestamp: u64,
     }
 
     impl ContractTrader {
-        const PLANK: u64 = 1_000_000_000_000;
+        pub const PLANK: u64 = 1_000_000_000_000;
 
         #[ink(constructor)]
         pub fn new() -> Self {
             Self {
+                strategy: StrategyType::Default,
                 fiat_balance: 0,
                 token_balance: 0,
                 last_quote: 0,
@@ -56,39 +63,8 @@ mod contract_trader {
         pub fn get_last_quote(&self) -> u64 {
             self.last_quote
         }
-    }
 
-    impl Trader for ContractTrader {
-        #[ink(message)]
-        fn setup(&mut self, saldo: u64, tokens: u64) {
-            self.fiat_balance = saldo;
-            self.token_balance = tokens;
-        }
-
-        #[ink(message)]
-        fn tick(&mut self, timestamp: u64, saldo: u64, tokens: u64, quotacao: u64) -> Action {
-            self.fiat_balance = saldo;
-            self.token_balance = tokens;
-            let mut action = Action::Idle;
-
-            if self.last_timestamp == 0 {
-                self.last_quote = quotacao;
-                self.last_timestamp = timestamp;
-
-                return action;
-            }
-
-            // Simple trading strategy example:
-            // Buy if price is lower than previous price
-            // Sell if price is higher than previous price
-            let min = Self::PLANK.checked_div(quotacao).unwrap_or(0);
-
-            if saldo > 0 && quotacao < self.last_quote {
-                action = Action::Comprar(min);
-            } else if tokens > 0 && quotacao > self.last_quote {
-                action = Action::Vender(min);
-            }
-
+        fn update_balances(&mut self, action: Action, quotacao: u64) {
             match action {
                 Action::Vender(amount) => {
                     self.token_balance = self.token_balance.checked_sub(amount).unwrap_or(0);
@@ -113,8 +89,31 @@ mod contract_trader {
                         .checked_add(amount)
                         .unwrap_or(self.token_balance);
                 }
-                _ => (),
+                Action::Idle => (),
             }
+        }
+    }
+
+    impl Trader for ContractTrader {
+        #[ink(message)]
+        fn setup(&mut self, saldo: u64, tokens: u64) {
+            self.fiat_balance = saldo;
+            self.token_balance = tokens;
+        }
+
+        #[ink(message)]
+        fn tick(&mut self, timestamp: u64, saldo: u64, tokens: u64, quotacao: u64) -> Action {
+            self.fiat_balance = saldo;
+            self.token_balance = tokens;
+
+            if self.last_timestamp == 0 {
+                self.last_quote = quotacao;
+                self.last_timestamp = timestamp;
+                return Action::Idle;
+            }
+
+            let action = self.strategy.execute(self, saldo, tokens, quotacao);
+            self.update_balances(action, quotacao);
 
             self.last_quote = quotacao;
             self.last_timestamp = timestamp;

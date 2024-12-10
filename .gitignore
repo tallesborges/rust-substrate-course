@@ -12,3 +12,4 @@ node_modules
 .aider*
 
 substrate_contracts_node_mac
+.env
